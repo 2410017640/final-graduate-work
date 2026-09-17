@@ -1,0 +1,23 @@
+# 服务端口（8080 被其他程序占用，改用 8081）
+server:
+  port: 8081
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 连接 smart_rent 数据库；serverTimezone 与新加坡时区一致
+    url: jdbc:mysql://localhost:3306/smart_rent?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Singapore&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: "123456"
+
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    # 数据库下划线字段自动转成 Java 驼峰命名（如 create_time -> createTime）
+    map-underscore-to-camel-case: true
+    # 控制台打印 SQL，方便开发调试
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键自增
+      id-type: auto
