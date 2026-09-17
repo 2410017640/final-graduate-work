@@ -4,8 +4,10 @@ import com.smartrent.common.RequireRole;
 import com.smartrent.common.Result;
 import com.smartrent.common.Role;
 import com.smartrent.dto.TagCreateDTO;
+import com.smartrent.dto.TagSuggestDTO;
 import com.smartrent.dto.TagUpdateDTO;
 import com.smartrent.entity.Tag;
+import com.smartrent.service.AiService;
 import com.smartrent.service.TagService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,15 +32,23 @@ import java.util.List;
 public class TagController {
 
     private final TagService tagService;
+    private final AiService aiService;
 
-    public TagController(TagService tagService) {
+    public TagController(TagService tagService, AiService aiService) {
         this.tagService = tagService;
+        this.aiService = aiService;
     }
 
     /** 获取全部标签（按分组展示） */
     @GetMapping("/list")
     public Result<List<Tag>> list() {
         return Result.success(tagService.listAll());
+    }
+
+    /** AI 生成标签：根据房源标题/描述推荐标签（登录即可） */
+    @PostMapping("/ai-suggest")
+    public Result<List<Tag>> aiSuggest(@RequestBody TagSuggestDTO dto) {
+        return Result.success(aiService.suggestTags(dto.getTitle(), dto.getDescription()));
     }
 
     /** 管理员新增标签 */
