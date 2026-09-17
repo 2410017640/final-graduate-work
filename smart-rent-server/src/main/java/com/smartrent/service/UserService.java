@@ -35,20 +35,20 @@ public class UserService {
     public void register(RegisterDTO dto) {
         // 1. 参数校验
         if (dto.getUsername() == null || dto.getUsername().trim().isEmpty()) {
-            throw new RuntimeException("用户名不能为空");
+            throw new BusinessException("用户名不能为空");
         }
         if (dto.getPassword() == null || dto.getPassword().length() < 6) {
-            throw new RuntimeException("密码长度至少 6 位");
+            throw new BusinessException("密码长度至少 6 位");
         }
         // 2. 角色校验：注册只允许房东和房客，管理员由系统内置
         if (!Role.LANDLORD.equals(dto.getRole()) && !Role.TENANT.equals(dto.getRole())) {
-            throw new RuntimeException("注册角色只能是房东或房客");
+            throw new BusinessException("注册角色只能是房东或房客");
         }
         // 3. 用户名唯一性检查
         Long count = userMapper.selectCount(
                 new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername().trim()));
         if (count > 0) {
-            throw new RuntimeException("用户名已存在");
+            throw new BusinessException("用户名已存在");
         }
         // 4. 保存用户，密码加密存储
         User user = new User();
@@ -71,15 +71,15 @@ public class UserService {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
         if (user == null) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new BusinessException("用户名或密码错误");
         }
         // 2. 校验密码（BCrypt 比对）
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("用户名或密码错误");
+            throw new BusinessException("用户名或密码错误");
         }
         // 3. 校验账号状态
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new RuntimeException("账号已被禁用");
+            throw new BusinessException("账号已被禁用");
         }
         // 4. 生成令牌并返回
         LoginVO vo = new LoginVO();
