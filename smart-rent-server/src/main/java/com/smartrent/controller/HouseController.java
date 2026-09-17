@@ -89,6 +89,12 @@ public class HouseController {
         return Result.success(houseService.listApproved(keyword));
     }
 
+    /** 自然语言筛选：GET /house/search?q=近地铁的两居室4000以内 */
+    @GetMapping("/search")
+    public Result<List<House>> search(@RequestParam("q") String q) {
+        return Result.success(houseService.searchByQuery(q));
+    }
+
     /** 详情（仅已通过） */
     @GetMapping("/{id}")
     public Result<House> detail(@PathVariable Long id) {

@@ -13,9 +13,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -155,6 +158,29 @@ public class TagService {
             Tag tag = tagMap.get(rel.getTagId());
             if (tag != null && result.containsKey(rel.getHouseId())) {
                 result.get(rel.getHouseId()).add(tag);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 查询"同时拥有所有给定标签"的房源ID列表（用于按标签筛选，需全部满足）
+     */
+    public List<Long> listHouseIdsByTags(List<Long> tagIds) {
+        List<Long> result = new ArrayList<>();
+        if (tagIds == null || tagIds.isEmpty()) {
+            return result;
+        }
+        List<HouseTag> relations = houseTagMapper.selectList(
+                new LambdaQueryWrapper<HouseTag>().in(HouseTag::getTagId, tagIds));
+        // 统计每个房源命中的不同标签数
+        Map<Long, Set<Long>> houseTagSet = new HashMap<>();
+        for (HouseTag rel : relations) {
+            houseTagSet.computeIfAbsent(rel.getHouseId(), k -> new HashSet<>()).add(rel.getTagId());
+        }
+        for (Map.Entry<Long, Set<Long>> e : houseTagSet.entrySet()) {
+            if (e.getValue().containsAll(tagIds)) {
+                result.add(e.getKey());
             }
         }
         return result;

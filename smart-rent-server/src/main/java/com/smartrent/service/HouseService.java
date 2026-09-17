@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.smartrent.common.BusinessException;
 import com.smartrent.common.LoginUserContext;
+import com.smartrent.dto.FilterCondition;
 import com.smartrent.dto.HouseAuditDTO;
 import com.smartrent.dto.HousePublishDTO;
 import com.smartrent.entity.House;
@@ -12,6 +13,7 @@ import com.smartrent.service.TagService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,10 +26,12 @@ public class HouseService {
 
     private final HouseMapper houseMapper;
     private final TagService tagService;
+    private final NlParser nlParser;
 
-    public HouseService(HouseMapper houseMapper, TagService tagService) {
+    public HouseService(HouseMapper houseMapper, TagService tagService, NlParser nlParser) {
         this.houseMapper = houseMapper;
         this.tagService = tagService;
+        this.nlParser = nlParser;
     }
 
     /**
@@ -135,6 +139,43 @@ public class HouseService {
                 .eq(House::getStatus, House.STATUS_APPROVED);
         if (StringUtils.isNotBlank(keyword)) {
             q.and(w -> w.like(House::getTitle, keyword).or().like(House::getAddress, keyword));
+        }
+        q.orderByDesc(House::getCreateTime);
+        List<House> houses = houseMapper.selectList(q);
+        fillTags(houses);
+        return houses;
+    }
+
+    /**
+     * 自然语言筛选：把"近地铁的两居室4000以内"解析成结构化条件，再查已通过房源
+     */
+    public List<House> searchByQuery(String query) {
+        FilterCondition fc = nlParser.parse(query);
+        LambdaQueryWrapper<House> q = new LambdaQueryWrapper<House>()
+                .eq(House::getStatus, House.STATUS_APPROVED);
+        if (fc.getRoomCount() != null) {
+            q.eq(House::getRoomCount, fc.getRoomCount());
+        }
+        if (fc.getMinRent() != null) {
+            q.ge(House::getRent, fc.getMinRent());
+        }
+        if (fc.getMaxRent() != null) {
+            q.le(House::getRent, fc.getMaxRent());
+        }
+        if (fc.getMinArea() != null) {
+            q.ge(House::getArea, fc.getMinArea());
+        }
+        if (StringUtils.isNotBlank(fc.getKeyword())) {
+            q.and(w -> w.like(House::getTitle, fc.getKeyword())
+                    .or().like(House::getAddress, fc.getKeyword())
+                    .or().like(House::getDescription, fc.getKeyword()));
+        }
+        if (fc.getTagIds() != null && !fc.getTagIds().isEmpty()) {
+            List<Long> houseIds = tagService.listHouseIdsByTags(fc.getTagIds());
+            if (houseIds.isEmpty()) {
+                return new ArrayList<>();
+            }
+            q.in(House::getId, houseIds);
         }
         q.orderByDesc(House::getCreateTime);
         List<House> houses = houseMapper.selectList(q);
