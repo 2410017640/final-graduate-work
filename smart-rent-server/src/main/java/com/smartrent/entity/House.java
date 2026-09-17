@@ -1,12 +1,14 @@
 package com.smartrent.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 房源实体，对应 house 表
@@ -56,6 +58,12 @@ public class House {
 
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+
+    /**
+     * 房源标签列表（非数据库字段，查询时由 HouseService 回填，方便前端直接展示）
+     */
+    @TableField(exist = false)
+    private List<Tag> tags;
 
     // ===== 状态常量，避免到处写魔法数字 =====
     public static final int STATUS_PENDING = 0;

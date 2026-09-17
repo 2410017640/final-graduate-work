@@ -3,6 +3,7 @@ package com.smartrent.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 发布/修改房源时接收的参数
@@ -21,4 +22,7 @@ public class HousePublishDTO {
     private Integer floor;
     private Integer totalFloor;
     private String images;
+
+    /** 选中的标签ID列表（可空，表示不带标签） */
+    private List<Long> tagIds;
 }
