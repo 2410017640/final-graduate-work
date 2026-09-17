@@ -11,7 +11,10 @@ import com.smartrent.mapper.QuestionMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * AI 问答业务：租客提问 -> 关键词匹配知识库 -> 命中自动回答；未命中记录为待回答(P10 由房东处理)。
@@ -22,18 +25,20 @@ public class QaService {
     /** 领域关键词（从租客问题中抽取，用于匹配知识库） */
     private static final String[] KEYWORDS = {
             "押金", "合同", "退租", "费用", "合租", "宠物", "养宠物", "水电", "燃气",
-            "维修", "违约", "提前", "通知", "中介", "租金", "入住"
+            "维修", "违约", "提前", "通知", "中介", "租金", "入住", "租房"
     };
 
     private final QuestionMapper questionMapper;
     private final KnowledgeService knowledgeService;
     private final HouseMapper houseMapper;
+    private final AnswerGenerator answerGenerator;
 
     public QaService(QuestionMapper questionMapper, KnowledgeService knowledgeService,
-                     HouseMapper houseMapper) {
+                     HouseMapper houseMapper, AnswerGenerator answerGenerator) {
         this.questionMapper = questionMapper;
         this.knowledgeService = knowledgeService;
         this.houseMapper = houseMapper;
+        this.answerGenerator = answerGenerator;
     }
 
     /**
@@ -43,7 +48,8 @@ public class QaService {
         if (StringUtils.isBlank(questionText)) {
             throw new BusinessException("问题不能为空");
         }
-        Knowledge best = matchKnowledge(questionText);
+        List<Knowledge> context = retrieveKnowledge(questionText);
+        String answer = answerGenerator.generate(questionText, context);
 
         Question q = new Question();
         q.setQuestion(questionText.trim());
@@ -59,8 +65,8 @@ public class QaService {
         q.setCreateTime(LocalDateTime.now());
         q.setUpdateTime(LocalDateTime.now());
 
-        if (best != null) {
-            q.setAnswer(best.getAnswer());
+        if (answer != null) {
+            q.setAnswer(answer);
             q.setStatus(Question.STATUS_ANSWERED);
             q.setAnsweredByKb(1);
         } else {
@@ -107,13 +113,11 @@ public class QaService {
     }
 
     /**
-     * 关键词匹配知识库：按"命中词在问题/答案/分类"加权打分，返回最佳匹配。
-     * 无任何关键词命中则返回 null（触发 P10 转交房东）。
+     * RAG 检索阶段：按"命中词在问题/答案/分类"加权打分，返回相关度最高的 top-K 条知识。
      */
-    private Knowledge matchKnowledge(String question) {
+    private List<Knowledge> retrieveKnowledge(String question) {
         List<Knowledge> all = knowledgeService.list(null);
-        Knowledge best = null;
-        int bestScore = 0;
+        Map<Knowledge, Integer> scores = new LinkedHashMap<>();
         for (Knowledge k : all) {
             int score = 0;
             for (String kw : KEYWORDS) {
@@ -129,11 +133,14 @@ public class QaService {
                     }
                 }
             }
-            if (score > bestScore) {
-                bestScore = score;
-                best = k;
+            if (score >= 3) {
+                scores.put(k, score);
             }
         }
-        return bestScore > 0 ? best : null;
+        return scores.entrySet().stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .limit(3)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
     }
 }
