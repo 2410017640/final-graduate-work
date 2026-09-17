@@ -5,7 +5,9 @@ import com.smartrent.config.ConceptDictionary;
 import com.smartrent.dto.SemanticMatchVO;
 import com.smartrent.entity.House;
 import com.smartrent.entity.Tag;
+import com.smartrent.entity.User;
 import com.smartrent.mapper.HouseMapper;
+import com.smartrent.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 语义检索服务：租客用自然语言（可能含非预制特征，如"有湖"）检索房源，
@@ -32,13 +35,16 @@ public class SemanticSearchService {
     private final TagService tagService;
     private final ConceptDictionary dictionary;
     private final EmbeddingService embeddingService;
+    private final UserMapper userMapper;
 
     public SemanticSearchService(HouseMapper houseMapper, TagService tagService,
-                                 ConceptDictionary dictionary, EmbeddingService embeddingService) {
+                                 ConceptDictionary dictionary, EmbeddingService embeddingService,
+                                 UserMapper userMapper) {
         this.houseMapper = houseMapper;
         this.tagService = tagService;
         this.dictionary = dictionary;
         this.embeddingService = embeddingService;
+        this.userMapper = userMapper;
     }
 
     public List<SemanticMatchVO> search(String query) {
@@ -99,8 +105,33 @@ public class SemanticSearchService {
             vo.setScore(cos);
             result.add(vo);
         }
+        // 回填房东昵称
+        fillLandlordNames(result.stream().map(SemanticMatchVO::getHouse).collect(Collectors.toList()));
         result.sort((a, b) -> Double.compare(b.getScore(), a.getScore()));
         return result;
+    }
+
+    /** 批量回填房东昵称 */
+    private void fillLandlordNames(List<House> houses) {
+        if (houses == null || houses.isEmpty()) {
+            return;
+        }
+        Set<Long> ids = houses.stream()
+                .map(House::getLandlordId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (ids.isEmpty()) {
+            return;
+        }
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
+        Map<Long, String> nameMap = new HashMap<>();
+        for (User u : users) {
+            nameMap.put(u.getId(), (u.getNickname() != null && !u.getNickname().isBlank())
+                    ? u.getNickname() : u.getUsername());
+        }
+        for (House h : houses) {
+            h.setLandlordName(nameMap.get(h.getLandlordId()));
+        }
     }
 
     private String buildText(House h, List<Tag> tags) {

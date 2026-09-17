@@ -70,6 +70,8 @@ export const qaAsk = (data) => request.post('/qa/ask', data)
 export const qaMy = () => request.get('/qa/my')
 export const qaPending = () => request.get('/qa/pending')
 export const qaAnswer = (id, data) => request.post(`/qa/${id}/answer`, data)
+export const qaAdminPending = () => request.get('/qa/admin/pending')
+export const qaAdminAnswer = (id, data) => request.post(`/qa/admin/${id}/answer`, data)
 
 // ===== 预约看房 =====
 export const createAppointment = (data) => request.post('/appointment', data)

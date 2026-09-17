@@ -8,14 +8,17 @@ import com.smartrent.dto.FilterCondition;
 import com.smartrent.dto.HouseAuditDTO;
 import com.smartrent.dto.HousePublishDTO;
 import com.smartrent.entity.House;
+import com.smartrent.entity.User;
 import com.smartrent.mapper.HouseMapper;
-import com.smartrent.service.TagService;
+import com.smartrent.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -27,11 +30,13 @@ public class HouseService {
     private final HouseMapper houseMapper;
     private final TagService tagService;
     private final NlParser nlParser;
+    private final UserMapper userMapper;
 
-    public HouseService(HouseMapper houseMapper, TagService tagService, NlParser nlParser) {
+    public HouseService(HouseMapper houseMapper, TagService tagService, NlParser nlParser, UserMapper userMapper) {
         this.houseMapper = houseMapper;
         this.tagService = tagService;
         this.nlParser = nlParser;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -128,6 +133,7 @@ public class HouseService {
                 .eq(House::getLandlordId, landlordId)
                 .orderByDesc(House::getCreateTime));
         fillTags(houses);
+        fillLandlordNames(houses);
         return houses;
     }
 
@@ -143,6 +149,7 @@ public class HouseService {
         q.orderByDesc(House::getCreateTime);
         List<House> houses = houseMapper.selectList(q);
         fillTags(houses);
+        fillLandlordNames(houses);
         return houses;
     }
 
@@ -187,6 +194,7 @@ public class HouseService {
         q.orderByDesc(House::getCreateTime);
         List<House> houses = houseMapper.selectList(q);
         fillTags(houses);
+        fillLandlordNames(houses);
         return houses;
     }
 
@@ -199,6 +207,7 @@ public class HouseService {
             throw new BusinessException("房源不存在或未通过审核");
         }
         fillTags(List.of(house));
+        fillLandlordNames(List.of(house));
         return house;
     }
 
@@ -264,6 +273,32 @@ public class HouseService {
         Map<Long, List<com.smartrent.entity.Tag>> tagMap = tagService.listTagsByHouseIds(houseIds);
         for (House house : houses) {
             house.setTags(tagMap.getOrDefault(house.getId(), List.of()));
+        }
+    }
+
+    /**
+     * 给房源列表批量回填房东昵称（一次性查用户，避免循环查库）
+     */
+    private void fillLandlordNames(List<House> houses) {
+        if (houses == null || houses.isEmpty()) {
+            return;
+        }
+        Set<Long> ids = houses.stream()
+                .map(House::getLandlordId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (ids.isEmpty()) {
+            return;
+        }
+        List<User> users = userMapper.selectList(new LambdaQueryWrapper<User>().in(User::getId, ids));
+        Map<Long, String> nameMap = new HashMap<>();
+        for (User u : users) {
+            String name = (u.getNickname() != null && !u.getNickname().isBlank())
+                    ? u.getNickname() : u.getUsername();
+            nameMap.put(u.getId(), name);
+        }
+        for (House h : houses) {
+            h.setLandlordName(nameMap.get(h.getLandlordId()));
         }
     }
 }

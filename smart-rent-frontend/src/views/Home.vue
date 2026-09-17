@@ -79,13 +79,17 @@ onMounted(async () => {
 
     <el-row :gutter="16" v-loading="loading">
       <el-col v-for="h in houses" :key="h.id" :xs="24" :sm="12" :md="8" :lg="6">
-        <el-card class="house-card" shadow="hover" @click="router.push('/house/' + h.id)">
-          <h3 class="htitle">{{ h.title }}</h3>
-          <div class="rent">¥{{ h.rent }}/月</div>
-          <div class="meta">{{ h.roomCount }}室{{ h.hallCount }}厅 · {{ h.area }}㎡</div>
-          <div class="addr">{{ h.address }}</div>
-          <div class="tags">
-            <el-tag v-for="t in (h.tags || [])" :key="t.id" size="small" style="margin-right:4px">{{ t.name }}</el-tag>
+        <el-card class="house-card" shadow="hover" :body-style="{ padding: '0' }" @click="router.push('/house/' + h.id)">
+          <div class="cover">{{ h.title.slice(0, 1) }}</div>
+          <div class="card-body">
+            <h3 class="htitle">{{ h.title }}</h3>
+            <div class="rent">¥{{ h.rent }}<span class="per">/月</span></div>
+            <div class="meta">{{ h.roomCount }}室{{ h.hallCount }}厅 · {{ h.area }}㎡ · {{ h.rentType === 2 ? '合租' : '整租' }}</div>
+            <div class="addr">📍 {{ h.address }}</div>
+            <div class="landlord">👤 房东：{{ h.landlordName || '—' }}</div>
+            <div class="tags">
+              <el-tag v-for="t in (h.tags || [])" :key="t.id" size="small" effect="plain">{{ t.name }}</el-tag>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -97,10 +101,14 @@ onMounted(async () => {
 <style scoped>
 .search-bar { margin-bottom: 16px; }
 .filters { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.house-card { cursor: pointer; margin-bottom: 16px; }
+.house-card { cursor: pointer; margin-bottom: 16px; overflow: hidden; }
+.cover { height: 90px; background: linear-gradient(135deg, #409eff, #67c23a); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 36px; font-weight: 700; }
+.card-body { padding: 12px; }
 .htitle { margin: 0 0 6px; font-size: 16px; }
 .rent { color: #f56c6c; font-size: 20px; font-weight: 700; }
+.per { font-size: 12px; font-weight: 400; color: #999; }
 .meta { color: #666; font-size: 13px; margin: 4px 0; }
-.addr { color: #999; font-size: 12px; margin-bottom: 6px; }
+.addr { color: #999; font-size: 12px; margin-bottom: 4px; }
+.landlord { color: #409eff; font-size: 13px; margin-bottom: 6px; }
 .tags { margin-top: 4px; }
 </style>

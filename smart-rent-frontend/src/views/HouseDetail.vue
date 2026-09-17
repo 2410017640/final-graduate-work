@@ -46,6 +46,7 @@ onMounted(load)
     <el-card>
       <h2>{{ house.title }}</h2>
       <div class="rent">¥{{ house.rent }}/月</div>
+      <div class="landlord">👤 房东：{{ house.landlordName || '—' }}</div>
       <el-descriptions :column="3" border style="margin-top:12px">
         <el-descriptions-item label="室/厅">{{ house.roomCount }}室{{ house.hallCount }}厅</el-descriptions-item>
         <el-descriptions-item label="面积">{{ house.area }}㎡</el-descriptions-item>
@@ -92,6 +93,7 @@ onMounted(load)
 
 <style scoped>
 .rent { color: #f56c6c; font-size: 26px; font-weight: 700; margin: 8px 0; }
+.landlord { color: #409eff; font-size: 14px; margin-bottom: 4px; }
 .desc { margin: 14px 0; color: #333; line-height: 1.6; }
 .tags { margin: 8px 0; }
 .tip { color: #999; font-size: 13px; }

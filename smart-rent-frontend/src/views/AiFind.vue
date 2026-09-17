@@ -44,6 +44,7 @@ async function search() {
             <h4>{{ it.house.title }}</h4>
             <div class="rent">¥{{ it.house.rent }}/月</div>
             <div class="addr">{{ it.house.address }}</div>
+            <div class="landlord">房东：{{ it.house.landlordName || '—' }}</div>
             <div v-if="it.matchedFeatures && it.matchedFeatures.length" class="match">
               <el-tag v-for="f in it.matchedFeatures" :key="f" size="small" type="warning" style="margin-right:4px">
                 {{ f }}<span v-if="it.nonPresetMatched">（AI识别·非预制）</span>
@@ -62,6 +63,7 @@ async function search() {
             <h4>{{ h.title }}</h4>
             <div class="rent">¥{{ h.rent }}/月</div>
             <div class="addr">{{ h.address }}</div>
+            <div class="landlord">房东：{{ h.landlordName || '—' }}</div>
             <div>
               <el-tag v-for="t in (h.tags || [])" :key="t.id" size="small" style="margin-right:4px">{{ t.name }}</el-tag>
             </div>
@@ -77,5 +79,6 @@ async function search() {
 .card { cursor: pointer; margin-bottom: 16px; }
 .rent { color: #f56c6c; font-weight: 700; }
 .addr { color: #999; font-size: 12px; margin: 4px 0; }
+.landlord { color: #409eff; font-size: 13px; margin: 2px 0 6px; }
 .match { margin-top: 6px; }
 </style>

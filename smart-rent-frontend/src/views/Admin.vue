@@ -1,12 +1,18 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { pendingHouses, auditHouse, listTags, createTag, updateTag, deleteTag, listKnowledge, createKnowledge, updateKnowledge, deleteKnowledge } from '../api'
+import { pendingHouses, auditHouse, listTags, createTag, updateTag, deleteTag, listKnowledge, createKnowledge, updateKnowledge, deleteKnowledge, qaAdminPending, qaAdminAnswer } from '../api'
 
 const active = ref('audit')
 const houses = ref([])
 const tags = ref([])
 const knowledges = ref([])
+const questions = ref([])
+
+// 回答问题对话框
+const answerDialog = ref(false)
+const curQuestion = ref(null)
+const answerText = ref('')
 
 // 审核拒绝
 const rejectDialog = ref(false)
@@ -59,7 +65,15 @@ async function delKb(id) {
   await deleteKnowledge(id); ElMessage.success('已删除'); loadKb()
 }
 
-onMounted(() => { loadHouses(); loadTags(); loadKb() })
+async function loadQuestions() { questions.value = await qaAdminPending() }
+function openAnswer(q) { curQuestion.value = q; answerText.value = ''; answerDialog.value = true }
+async function submitAnswer() {
+  if (!answerText.value.trim()) { ElMessage.warning('请输入回答'); return }
+  await qaAdminAnswer(curQuestion.value.id, { answer: answerText.value.trim() })
+  ElMessage.success('已回复'); answerDialog.value = false; loadQuestions()
+}
+
+onMounted(() => { loadHouses(); loadTags(); loadKb(); loadQuestions() })
 </script>
 
 <template>
@@ -110,6 +124,18 @@ onMounted(() => { loadHouses(); loadTags(); loadKb() })
           </el-table-column>
         </el-table>
       </el-tab-pane>
+
+      <el-tab-pane label="待回答问题" name="questions">
+        <el-table :data="questions" border>
+          <el-table-column prop="id" label="ID" width="60" />
+          <el-table-column prop="question" label="问题" />
+          <el-table-column prop="houseId" label="关联房源" width="90" />
+          <el-table-column label="操作" width="100">
+            <template #default="{ row }"><el-button size="small" type="primary" @click="openAnswer(row)">回答</el-button></template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-if="!questions.length" description="暂无待回答的问题" />
+      </el-tab-pane>
     </el-tabs>
   </el-card>
 
@@ -141,6 +167,15 @@ onMounted(() => { loadHouses(); loadTags(); loadKb() })
     <template #footer>
       <el-button @click="kbDialog = false">取消</el-button>
       <el-button type="primary" @click="saveKb">保存</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="answerDialog" title="回答问题" width="460px">
+    <p class="aq">{{ curQuestion?.question }}</p>
+    <el-input v-model="answerText" type="textarea" :rows="3" placeholder="输入回答" />
+    <template #footer>
+      <el-button @click="answerDialog = false">取消</el-button>
+      <el-button type="primary" @click="submitAnswer">提交</el-button>
     </template>
   </el-dialog>
 </template>

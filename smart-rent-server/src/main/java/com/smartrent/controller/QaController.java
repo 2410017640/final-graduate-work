@@ -61,4 +61,19 @@ public class QaController {
         qaService.answer(id, LoginUserContext.getUserId(), dto.getAnswer());
         return Result.success();
     }
+
+    /** 管理员查看全部待回答问题（含未指定房东的一般问题） */
+    @GetMapping("/admin/pending")
+    @RequireRole(Role.ADMIN)
+    public Result<List<Question>> adminPending() {
+        return Result.success(qaService.pendingAll());
+    }
+
+    /** 管理员回答问题 */
+    @PostMapping("/admin/{id}/answer")
+    @RequireRole(Role.ADMIN)
+    public Result<Void> adminAnswer(@PathVariable Long id, @RequestBody QaAnswerDTO dto) {
+        qaService.answerByAdmin(id, dto.getAnswer());
+        return Result.success();
+    }
 }

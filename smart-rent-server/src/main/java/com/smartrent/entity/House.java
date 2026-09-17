@@ -65,6 +65,12 @@ public class House {
     @TableField(exist = false)
     private List<Tag> tags;
 
+    /**
+     * 房东昵称（非数据库字段，查询时回填，方便前端直接展示房东是谁）
+     */
+    @TableField(exist = false)
+    private String landlordName;
+
     // ===== 状态常量，避免到处写魔法数字 =====
     public static final int STATUS_PENDING = 0;
     public static final int STATUS_APPROVED = 1;
