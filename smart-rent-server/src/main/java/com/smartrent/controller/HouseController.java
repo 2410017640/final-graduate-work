@@ -6,8 +6,10 @@ import com.smartrent.common.Role;
 import com.smartrent.dto.FilterCondition;
 import com.smartrent.dto.HouseAuditDTO;
 import com.smartrent.dto.HousePublishDTO;
+import com.smartrent.dto.SemanticMatchVO;
 import com.smartrent.entity.House;
 import com.smartrent.service.HouseService;
+import com.smartrent.service.SemanticSearchService;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,9 +36,11 @@ import java.util.List;
 public class HouseController {
 
     private final HouseService houseService;
+    private final SemanticSearchService semanticSearchService;
 
-    public HouseController(HouseService houseService) {
+    public HouseController(HouseService houseService, SemanticSearchService semanticSearchService) {
         this.houseService = houseService;
+        this.semanticSearchService = semanticSearchService;
     }
 
     /** 发布房源（房东） */
@@ -114,6 +118,12 @@ public class HouseController {
         fc.setMinArea(minArea);
         fc.setKeyword(keyword);
         return Result.success(houseService.search(fc));
+    }
+
+    /** 语义检索：GET /house/semantic?q=附近有湖（概念词典+向量化，匹配非预制特征并特殊备注） */
+    @GetMapping("/semantic")
+    public Result<List<SemanticMatchVO>> semantic(@RequestParam("q") String q) {
+        return Result.success(semanticSearchService.search(q));
     }
 
     /** 详情（仅已通过） */
