@@ -31,12 +31,14 @@ public class SemanticSearchService {
     private final HouseMapper houseMapper;
     private final TagService tagService;
     private final ConceptDictionary dictionary;
+    private final EmbeddingService embeddingService;
 
     public SemanticSearchService(HouseMapper houseMapper, TagService tagService,
-                                 ConceptDictionary dictionary) {
+                                 ConceptDictionary dictionary, EmbeddingService embeddingService) {
         this.houseMapper = houseMapper;
         this.tagService = tagService;
         this.dictionary = dictionary;
+        this.embeddingService = embeddingService;
     }
 
     public List<SemanticMatchVO> search(String query) {
@@ -56,6 +58,7 @@ public class SemanticSearchService {
                 queryConcepts.add(dictionary.conceptOf(w));
             }
         }
+        double[] queryVec = embeddingService.embed(query);
 
         for (House house : houses) {
             List<Tag> tags = tagMap.getOrDefault(house.getId(), List.of());
@@ -77,7 +80,7 @@ public class SemanticSearchService {
                 }
             }
 
-            double cos = cosine(query, text);
+            double cos = cosine(queryVec, embeddingService.embed(text));
             if (matched.isEmpty() && cos < COS_THRESHOLD) {
                 continue;
             }
@@ -115,34 +118,12 @@ public class SemanticSearchService {
         return s == null ? "" : s;
     }
 
-    /** 字符二元组向量 + 余弦相似度（轻量向量化检索） */
-    private double cosine(String a, String b) {
-        Map<String, Integer> va = bigrams(a);
-        Map<String, Integer> vb = bigrams(b);
-        double dot = 0, na = 0, nb = 0;
-        for (Map.Entry<String, Integer> e : va.entrySet()) {
-            na += (double) e.getValue() * e.getValue();
-            Integer cb = vb.get(e.getKey());
-            if (cb != null) {
-                dot += (double) e.getValue() * cb;
-            }
+    /** 余弦相似度（向量已 L2 归一化，点积即余弦） */
+    private double cosine(double[] a, double[] b) {
+        double dot = 0;
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
         }
-        for (int c : vb.values()) {
-            nb += (double) c * c;
-        }
-        if (na == 0 || nb == 0) {
-            return 0;
-        }
-        return dot / (Math.sqrt(na) * Math.sqrt(nb));
-    }
-
-    private Map<String, Integer> bigrams(String s) {
-        Map<String, Integer> m = new HashMap<>();
-        String t = s == null ? "" : s;
-        for (int i = 0; i + 1 < t.length(); i++) {
-            String g = t.substring(i, i + 2);
-            m.merge(g, 1, Integer::sum);
-        }
-        return m;
+        return dot;
     }
 }
