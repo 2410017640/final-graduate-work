@@ -150,7 +150,14 @@ public class HouseService {
      * 自然语言筛选：把"近地铁的两居室4000以内"解析成结构化条件，再查已通过房源
      */
     public List<House> searchByQuery(String query) {
-        FilterCondition fc = nlParser.parse(query);
+        return search(nlParser.parse(query));
+    }
+
+    /**
+     * 按结构化条件筛选已通过房源（手动筛选与自然语言筛选共用同一套过滤逻辑）
+     * 支持：标签(AND)、租金区间、室数、面积下限、关键词
+     */
+    public List<House> search(FilterCondition fc) {
         LambdaQueryWrapper<House> q = new LambdaQueryWrapper<House>()
                 .eq(House::getStatus, House.STATUS_APPROVED);
         if (fc.getRoomCount() != null) {

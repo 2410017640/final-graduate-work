@@ -3,6 +3,7 @@ package com.smartrent.controller;
 import com.smartrent.common.RequireRole;
 import com.smartrent.common.Result;
 import com.smartrent.common.Role;
+import com.smartrent.dto.FilterCondition;
 import com.smartrent.dto.HouseAuditDTO;
 import com.smartrent.dto.HousePublishDTO;
 import com.smartrent.entity.House;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -93,6 +95,25 @@ public class HouseController {
     @GetMapping("/search")
     public Result<List<House>> search(@RequestParam("q") String q) {
         return Result.success(houseService.searchByQuery(q));
+    }
+
+    /** 手动筛选：标签(多选)/租金区间/室数/面积/关键词，基础手动选择标签功能 */
+    @GetMapping("/filter")
+    public Result<List<House>> filter(
+            @RequestParam(required = false) List<Long> tagIds,
+            @RequestParam(required = false) BigDecimal minRent,
+            @RequestParam(required = false) BigDecimal maxRent,
+            @RequestParam(required = false) Integer roomCount,
+            @RequestParam(required = false) BigDecimal minArea,
+            @RequestParam(required = false) String keyword) {
+        FilterCondition fc = new FilterCondition();
+        fc.setTagIds(tagIds);
+        fc.setMinRent(minRent);
+        fc.setMaxRent(maxRent);
+        fc.setRoomCount(roomCount);
+        fc.setMinArea(minArea);
+        fc.setKeyword(keyword);
+        return Result.success(houseService.search(fc));
     }
 
     /** 详情（仅已通过） */
